@@ -102,4 +102,14 @@ class JobStateMachineTest {
         job.markForRetry("e", NOW, NOW); // attempts=2
         assertThat(job.canRetry()).isFalse(); // 2+1 < 3 → false
     }
+
+    @Test
+    @DisplayName("isTerminal / isClaimable reflejan la semántica de cada estado")
+    void statusSemantics() {
+        assertThat(JobStatus.COMPLETED.isTerminal()).isTrue();
+        assertThat(JobStatus.PENDING.isTerminal()).isFalse();
+        assertThat(JobStatus.PENDING.isClaimable()).isTrue();
+        assertThat(JobStatus.RETRYING.isClaimable()).isTrue();
+        assertThat(JobStatus.RUNNING.isClaimable()).isFalse();
+    }
 }
