@@ -1,0 +1,72 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Ingress — TLS con cert-manager + nginx
+#
+# Flujo de tráfico:
+#   Internet ──HTTPS──► Ingress (TLS termina acá) ──HTTP──► async-job-engine-service:80 ──► Pod:8080
+#
+# Prerrequisitos:
+#   1. cert-manager instalado (ver clusterissuer.yaml)
+#   2. ingress-nginx instalado:
+#        helm upgrade --install ingress-nginx ingress-nginx \
+#          --repo https://kubernetes.github.io/ingress-nginx \
+#          --namespace ingress-nginx --create-namespace
+#   3. DNS del dominio apuntando a la IP externa del Ingress Controller:
+#        kubectl get svc -n ingress-nginx ingress-nginx-controller
+#
+# Validación antes de producción:
+#   - Cambiar cert-manager.io/cluster-issuer a 'letsencrypt-staging'
+#   - Verificar que cert-manager emite el certificado:
+#        kubectl describe certificate async-job-engine-tls -n async-job-engine
+#   - Una vez validado, cambiar a 'letsencrypt-prod' y borrar el Secret antiguo
+#        kubectl delete secret async-job-engine-tls -n async-job-engine
+# ──────────────────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: async-job-engine-ingress
+  namespace: async-job-engine
+  labels:
+    app.kubernetes.io/name: async-job-engine
+  annotations:
+    # cert-manager emite y renueva automáticamente el certificado Let's Encrypt.
+    # IMPORTANTE: empezar con 'letsencrypt-staging' para validar.
+    # Cambiar a 'letsencrypt-prod' solo cuando el certificado staging se emita correctamente.
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+
+    # Redirigir todo el tráfico HTTP (puerto 80) a HTTPS (puerto 443)
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Nota HSTS: el header Strict-Transport-Security lo agrega Spring Security
+    # automáticamente cuando detecta X-Forwarded-Proto: https.
+    # No se configura aquí porque configuration-snippet está deshabilitado por
+    # defecto en ingress-nginx v1.9+ (requiere --allow-snippet-annotations=true).
+
+    # Límite de tamaño del body (ajustar si el API acepta uploads)
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+
+    # Timeouts de proxy (segundos)
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+
+spec:
+  ingressClassName: nginx
+
+  # TLS: cert-manager crea y gestiona el Secret 'async-job-engine-tls' automáticamente
+  tls:
+    - hosts:
+        - api.tudominio.com    # REEMPLAZAR con el dominio real
+      secretName: async-job-engine-tls
+
+  rules:
+    - host: api.tudominio.com  # REEMPLAZAR con el dominio real
+      http:
+        paths:
+          - path: /async-job-engine
+            pathType: Prefix
+            backend:
+              service:
+                name: async-job-engine-service
+                port:
+                  number: 80

@@ -1,0 +1,60 @@
+# Configuración para Tests
+spring:
+  # Configuración de DataSource H2 para tests
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  
+  # Configuración de H2 Console (opcional, útil para debug)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # Configuración de JPA para tests
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+  
+  # Configuración de Flyway para tests
+  flyway:
+    enabled: true
+    schemas: app
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  # Deshabilitar Redis completamente en tests
+  data:
+    redis:
+      enabled: false
+  
+  # Deshabilitar autoconfiguraciones de Redis
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration
+
+# Configuración de aplicación para tests
+app:
+  cache:
+    enabled: false
+  cors:
+    allowed-origins: "*"
+  security:
+    enabled: false    # Security desactivado en tests
+
+# Configuración de logging para tests
+logging:
+  level:
+    root: INFO
+    com.ar.laboratory.asyncjobengine: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

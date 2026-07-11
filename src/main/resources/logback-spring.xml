@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- ================================================================
+         PROPIEDADES COMUNES
+         ================================================================ -->
+
+    <property name="LOG_DIR" value="logs"/>
+    <property name="LOG_FILE" value="${LOG_DIR}/app.log"/>
+
+    <!--
+        Pattern de consola para perfil local.
+        %highlight colorea la línea según el nivel (ERROR=rojo, WARN=amarillo, etc.).
+        %X{traceId} lee el valor inyectado en MDC por MdcFilter.
+    -->
+    <property name="CONSOLE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) ${PID:- } --- [%15.15t] %-40.40logger{39} : [%X{traceId:-no-trace}] %msg%n%ex"/>
+
+    <!-- Pattern plano para archivo de log (sin colores ANSI) -->
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level ${PID:- } --- [%t] %-40.40logger{39} : [%X{traceId:-no-trace}] %msg%n%ex"/>
+
+
+    <!-- ================================================================
+         APPENDERS
+         ================================================================ -->
+
+    <!-- Consola legible con highlight por nivel — solo para local -->
+    <springProfile name="local">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_PATTERN}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!--
+        Consola JSON estructurado — para entornos no-local (dev, staging, prod).
+        Cada línea es un objeto JSON válido; fácil de ingestar en ELK, Loki o Datadog.
+        traceId viene del MDC para correlación distribuida.
+    -->
+    <springProfile name="!local">
+        <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                <pattern>{"@timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}","level":"%p","traceId":"%X{traceId:-}","logger":"%logger{36}","thread":"%t","message":"%replace(%msg){'["\n\r]',''}","exception":"%replace(%ex{10}){'[\n\r]',' | '}"}%n</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!--
+        Rolling file — activo en todos los perfiles.
+        Rotación diaria + por tamaño (50 MB).
+        Retención: 30 días / 1 GB total.
+    -->
+    <appender name="ROLLING_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/app.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+
+    <!-- ================================================================
+         ROOT LOGGERS POR PERFIL
+         ================================================================ -->
+
+    <springProfile name="local">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ROLLING_FILE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!local">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_JSON"/>
+            <appender-ref ref="ROLLING_FILE"/>
+        </root>
+    </springProfile>
+
+</configuration>

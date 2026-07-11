@@ -1,0 +1,21 @@
+# Perfil LOCAL - Configuración para desarrollo local
+spring:
+  # Configuración de DataSource
+  datasource:
+    url: jdbc:postgresql://localhost:5432/asyncjobengine
+    username: postgres
+    password: postgres
+
+# Configuración de logging para desarrollo
+logging:
+  level:
+    root: INFO
+    com.ar.laboratory.asyncjobengine: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Configuración de aplicación para desarrollo local
+app:
+  cache:
+    enabled: true # Activar caché en desarrollo local

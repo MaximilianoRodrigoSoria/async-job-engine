@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: async-job-engine
+  labels:
+    app.kubernetes.io/name: async-job-engine
+    app.kubernetes.io/managed-by: kubectl

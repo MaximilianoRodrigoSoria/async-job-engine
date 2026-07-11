@@ -1,0 +1,186 @@
+# Configuración Spring Boot - Archivo Base
+spring:
+  application:
+    name: async-job-engine
+  
+  # Profile activo por defecto
+  profiles:
+    active: local
+  
+  # Configuración de DataSource (valores por defecto, sobreescritos por profiles)
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    # Pool de conexiones HikariCP (valores base, ajustables por entorno)
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000      # 30s máximo esperando una conexión libre del pool
+      idle-timeout: 600000           # 10min antes de cerrar una conexión ociosa
+      max-lifetime: 1800000          # 30min vida máxima de una conexión (< server wait_timeout)
+      keepalive-time: 30000          # 30s — ping para mantener vivas conexiones en el pool
+      leak-detection-threshold: 60000 # 60s — loguea un warning si una conexión no se devuelve
+      pool-name: async-job-engine-pool
+  
+  # Configuración de Flyway
+  flyway:
+    enabled: true
+    schemas: app
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  # Hilos virtuales (Java 21) — mayor throughput en cargas I/O-bound
+  threads:
+    virtual:
+      enabled: true
+
+  # Configuración de JPA
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        # Batching de escrituras y zona horaria consistente
+        jdbc:
+          batch_size: 50
+          time_zone: UTC
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+  
+  # Configuración de Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      connect-timeout: 2000   # 2s para establecer la conexión TCP
+      timeout: 2000           # 2s para comandos — evita bloqueos largos si Redis no responde
+      lettuce:
+        pool:
+          max-active: 8       # conexiones activas simultáneas
+          max-idle: 4         # conexiones idle máximas en el pool
+          min-idle: 1         # conexiones idle mínimas (warm pool)
+          max-wait: 1000      # 1s esperando conexión libre antes de error
+    # Límite de tamaño de página para proteger contra consultas patológicas
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
+  
+  # Configuración de Cache
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000 # TTL por defecto: 10 minutos
+
+# Configuración del servidor
+server:
+  port: 8080
+  servlet:
+    context-path: /async-job-engine
+  # HTTP/2 (h2c sobre Tomcat) y compresión de respuestas
+  http2:
+    enabled: true
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/plain,text/css,application/javascript
+    min-response-size: 1024
+
+# Configuración de Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,prometheus,caches
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always   # en local/dev se muestran detalles; prod lo sobreescribe a 'never'
+      show-components: always
+      probes:
+        enabled: true        # habilita /actuator/health/liveness y /actuator/health/readiness
+  info:
+    env:
+      enabled: true
+
+# Configuración de OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: false
+
+# Configuración de logging (valores por defecto)
+logging:
+  level:
+    root: INFO
+    com.ar.laboratory.asyncjobengine: INFO
+
+# Configuración de aplicación
+app:
+  # Habilitar/deshabilitar caché con Redis
+  # Valores: true (habilita caché) / false (deshabilita caché)
+  cache:
+    enabled: true
+
+  # Configuración de CORS
+  cors:
+    # Orígenes permitidos (separados por coma si hay más de uno)
+    # Usar * para permitir cualquier origen
+    allowed-origins: "*"
+
+  # Spring Security + JWT (desactivado por default)
+  security:
+    enabled: false
+    jwt:
+      # Reemplazar con un secret de ≥ 256 bits en producción
+      secret: "changeme-replace-with-a-256-bit-secret-key-in-production"
+      expiration-ms: 86400000  # 24 horas
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Resilience4j — Circuit Breaker + Retry
+# ──────────────────────────────────────────────────────────────────────────────
+resilience4j:
+  circuitbreaker:
+    instances:
+      example-db:
+        # Abre el circuito cuando ≥ 50 % de llamadas fallan en una ventana de 10
+        failure-rate-threshold: 50
+        # Mínimo de llamadas antes de evaluar el estado
+        minimum-number-of-calls: 5
+        # Tiempo en estado OPEN antes de pasar a HALF_OPEN
+        wait-duration-in-open-state: 10s
+        # Llamadas de prueba en estado HALF_OPEN
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        register-health-indicator: true
+  retry:
+    instances:
+      example-db:
+        # Número máximo de intentos (incluye el original)
+        max-attempts: 3
+        wait-duration: 500ms
+        # Solo reintentar en errores transitorios de BD
+        retry-exceptions:
+          - org.springframework.dao.TransientDataAccessException
+          - org.springframework.dao.QueryTimeoutException
+          - java.net.SocketTimeoutException
+
+  ratelimiter:
+    instances:
+      examples-api:
+        # Solicitudes permitidas por ventana de tiempo
+        limit-for-period: 50
+        # Duración de la ventana (se renuevan 50 permisos cada 1s)
+        limit-refresh-period: 1s
+        # Tiempo máximo que un hilo espera para obtener un permiso antes de recibir 429
+        timeout-duration: 0s
+        # Registrar métricas en Actuator
+        register-health-indicator: true

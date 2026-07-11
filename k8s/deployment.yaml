@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: async-job-engine
+  namespace: async-job-engine
+  labels:
+    app.kubernetes.io/name: async-job-engine
+    app.kubernetes.io/version: "0.0.1"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: async-job-engine
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0          # Zero-downtime deploy
+  template:
+    metadata:
+      labels:
+        app: async-job-engine
+        app.kubernetes.io/name: async-job-engine
+    spec:
+      # Garantiza que los pods no se ubiquen en el mismo nodo
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - async-job-engine
+                topologyKey: kubernetes.io/hostname
+
+      containers:
+        - name: async-job-engine
+          image: async-job-engine:0.0.1-SNAPSHOT   # Reemplazar con la imagen real del registry
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          # Variables de entorno desde ConfigMap y Secret
+          envFrom:
+            - configMapRef:
+                name: async-job-engine-config
+            - secretRef:
+                name: async-job-engine-secret
+
+          # ──────────────────────────────────────────
+          # Liveness Probe: reinicia el pod si la app
+          # queda colgada y no responde.
+          # Apunta al endpoint de Actuator con context-path /async-job-engine
+          # ──────────────────────────────────────────
+          livenessProbe:
+            httpGet:
+              path: /async-job-engine/actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          # ──────────────────────────────────────────
+          # Readiness Probe: saca el pod del balanceo
+          # mientras no esté listo para recibir tráfico.
+          # ──────────────────────────────────────────
+          readinessProbe:
+            httpGet:
+              path: /async-job-engine/actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          # ──────────────────────────────────────────
+          # Startup Probe: da tiempo extra al arranque
+          # sin que liveness lo mate prematuramente.
+          # ──────────────────────────────────────────
+          startupProbe:
+            httpGet:
+              path: /async-job-engine/actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12    # 12 * 5s = 60s máximo para arrancar
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "768Mi"
+
+      # Graceful shutdown: dar tiempo al pod de terminar
+      # las requests en curso antes de ser eliminado
+      terminationGracePeriodSeconds: 30

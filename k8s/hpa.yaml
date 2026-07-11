@@ -1,0 +1,40 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: async-job-engine-hpa
+  namespace: async-job-engine
+  labels:
+    app.kubernetes.io/name: async-job-engine
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: async-job-engine
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70    # Escala cuando el CPU promedio supere 70%
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80    # Escala cuando la memoria promedio supere 80%
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 120   # Espera 2 min antes de reducir réplicas
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0    # Escala hacia arriba sin espera
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60

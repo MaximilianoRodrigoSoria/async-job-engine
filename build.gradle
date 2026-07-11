@@ -1,0 +1,274 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.0.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.diffplug.spotless' version '6.25.0'
+    id 'checkstyle'
+    id 'pmd'
+    id 'com.github.spotbugs' version '6.0.26'
+    id 'jacoco'
+}
+
+group = 'com.ar.laboratory'
+version = '0.0.1-SNAPSHOT'
+description = 'async-job-engine'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot Starters
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.spring.boot.actuator  // expone Health, HealthIndicator en compilación
+    implementation libs.micrometer.registry.prometheus
+    implementation libs.spring.boot.starter.data.jpa
+    implementation libs.spring.boot.starter.validation
+    implementation libs.spring.boot.starter.web
+    implementation libs.spring.boot.starter.flyway
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.spring.boot.starter.cache
+
+    // AOP for Call History
+    implementation libs.spring.aop
+    implementation libs.aspectjweaver
+
+    // Flyway - versión explícita para PostgreSQL 15
+    implementation libs.flyway.core
+    implementation libs.flyway.database.postgresql
+
+    // OpenAPI / Swagger
+    implementation libs.springdoc.openapi.starter.webmvc.ui
+
+    // Database
+    runtimeOnly libs.postgresql
+
+    // Lombok
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+
+    // MapStruct
+    implementation libs.mapstruct
+    annotationProcessor libs.mapstruct.processor
+    annotationProcessor libs.lombok.mapstruct.binding
+
+    // Testing
+    testImplementation libs.spring.boot.starter.test
+    testImplementation libs.spring.boot.starter.webflux // Para WebTestClient
+    testRuntimeOnly libs.junit.platform.launcher
+    testRuntimeOnly libs.h2
+
+    // Testcontainers for integration tests with real databases
+    testImplementation libs.spring.boot.testcontainers
+    testImplementation libs.testcontainers
+    testImplementation libs.testcontainers.junit.jupiter
+    testImplementation libs.testcontainers.postgresql
+
+    // WireMock for HTTP mocking in tests
+    testImplementation libs.wiremock.standalone
+
+    // Resilience4j — Circuit Breaker, Retry, RateLimiter
+    implementation libs.resilience4j.spring.boot3
+
+    // Spring Security + JWT
+    implementation libs.spring.boot.starter.security
+    implementation libs.jjwt.api
+    runtimeOnly libs.jjwt.impl
+    runtimeOnly libs.jjwt.jackson
+
+    // ArchUnit — tests de arquitectura hexagonal
+    testImplementation libs.archunit.junit5
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Configuración de Spotless
+spotless {
+    java {
+        target 'src/**/*.java'
+
+        // Formato de Google Java con indentación de 4 espacios
+        googleJavaFormat('1.19.2').aosp().reflowLongStrings()
+
+        // Eliminar imports no utilizados y ordenarlos
+        removeUnusedImports()
+        importOrder()
+
+        // Formatear espacios en blanco
+        trimTrailingWhitespace()
+        endWithNewline()
+
+        // Eliminar líneas en blanco innecesarias
+        indentWithSpaces(4)
+
+        // Formatear bloques de código
+        toggleOffOn()
+    }
+
+    format 'misc', {
+        target '*.gradle', '*.md', '.gitignore'
+        trimTrailingWhitespace()
+        indentWithSpaces(4)
+        endWithNewline()
+    }
+}
+
+// Ejecutar spotlessApply automáticamente antes de compilar
+tasks.compileJava.dependsOn tasks.spotlessApply
+tasks.compileTestJava.dependsOn tasks.spotlessApply
+
+// Configuración de Checkstyle
+checkstyle {
+    toolVersion = '10.20.2'
+    configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+    ignoreFailures = true
+    maxWarnings = 0
+}
+
+checkstyleMain {
+    source = 'src/main/java'
+}
+
+checkstyleTest {
+    source = 'src/test/java'
+}
+
+// Configuración de PMD
+pmd {
+    toolVersion = '7.8.0'
+    consoleOutput = true
+    ruleSets = []
+    ruleSetFiles = files("${rootDir}/config/pmd/pmd.xml")
+    ignoreFailures = true
+}
+
+pmdMain {
+    source = 'src/main/java'
+}
+
+pmdTest {
+    source = 'src/test/java'
+}
+
+// Configuración de SpotBugs
+spotbugs {
+    toolVersion = '4.8.6'
+    effort = 'max'
+    reportLevel = 'high'
+    ignoreFailures = false
+    excludeFilter = file("${rootDir}/config/spotbugs/spotbugs-exclude.xml")
+}
+
+spotbugsMain {
+    reports {
+        html {
+            required = true
+            outputLocation = file("${buildDir}/reports/spotbugs/main.html")
+        }
+        xml {
+            required = true
+            outputLocation = file("${buildDir}/reports/spotbugs/main.xml")
+        }
+    }
+}
+
+spotbugsTest {
+    reports {
+        html {
+            required = true
+            outputLocation = file("${buildDir}/reports/spotbugs/test.html")
+        }
+        xml {
+            required = true
+            outputLocation = file("${buildDir}/reports/spotbugs/test.xml")
+        }
+    }
+}
+
+// Integrar spotlessCheck con check
+tasks.named('check') {
+    dependsOn tasks.spotlessCheck
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// JaCoCo — cobertura de código con umbral mínimo
+// ──────────────────────────────────────────────────────────────────────────────
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+// Clases excluidas del cómputo de cobertura:
+// son glue-code de framework sin lógica de negocio propia
+ext.jacocoExcludePatterns = [
+    '**/config/**',          // Spring @Configuration
+    '**/dto/**',             // Data Transfer Objects
+    '**/entity/**',          // JPA @Entity
+    '**/mapper/**',          // MapStruct / mappers manuales
+    '**/api/**',             // Interfaces OpenAPI (@Operation, etc.)
+    '**/security/**',        // SecurityConfig, JWT utilities, filters
+    '**/logging/**',         // LoggingFilter, MdcFilter, LogSanitizer
+    '**/exception/**',       // Wrappers de excepción de infraestructura
+    '**/specification/**',   // JPA Specifications
+    '**/cache/**',           // CacheLoggingAspect y helpers de caché
+    '**/*Application*',      // Clase principal de Spring Boot
+]
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir('reports/jacoco/html')
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    violationRules {
+        rule {
+            limit {
+                // Umbral mínimo: 70 % de instrucciones cubiertas
+                minimum = 0.70
+            }
+        }
+        rule {
+            // Umbral por clase: ninguna clase con menos del 50 %
+            element = 'CLASS'
+            limit {
+                counter = 'LINE'
+                minimum = 0.50
+            }
+        }
+    }
+}
+
+// Aplicar exclusiones a ambos tasks una vez que el proyecto está evaluado.
+// afterEvaluate es método de Project, no de Task — se llama aquí, a nivel raíz.
+afterEvaluate {
+    [jacocoTestReport, jacocoTestCoverageVerification].each { task ->
+        task.classDirectories.setFrom(
+            files(task.classDirectories.files.collect { dir ->
+                fileTree(dir: dir, exclude: jacocoExcludePatterns)
+            })
+        )
+    }
+}
+
+// Ejecutar la verificación como parte del ciclo check
+tasks.named('check') {
+    dependsOn tasks.jacocoTestCoverageVerification
+}

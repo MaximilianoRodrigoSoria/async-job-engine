@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+<ruleset name="Custom PMD Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        Configuración de PMD enfocada en detección de code smells y problemas de diseño.
+        NO incluye reglas de formato (delegadas a Spotless).
+        Prioriza alta señal/ruido: complejidad, código duplicado, malas prácticas.
+    </description>
+
+    <!-- ===== BEST PRACTICES ===== -->
+    <rule ref="category/java/bestpractices.xml">
+        <!-- Excluir reglas demasiado restrictivas o que no aportan valor -->
+        <exclude name="UseVarargs"/>
+        <exclude name="GuardLogStatement"/>
+        <exclude name="AvoidReassigningParameters"/>
+        <exclude name="UnitTestContainsTooManyAsserts"/>
+        <exclude name="UnitTestAssertionsShouldIncludeMessage"/>
+        <exclude name="AvoidDuplicateLiterals"/>
+    </rule>
+
+    <!-- ===== CODE STYLE (solo reglas de alto nivel) ===== -->
+    <rule ref="category/java/codestyle.xml/ClassNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/MethodNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/FieldNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/FormalParameterNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/LocalVariableNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/PackageCase"/>
+    <rule ref="category/java/codestyle.xml/ControlStatementBraces"/>
+    <rule ref="category/java/codestyle.xml/EmptyControlStatement"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryConstructor"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryReturn"/>
+    <rule ref="category/java/codestyle.xml/UseDiamondOperator"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryFullyQualifiedName"/>
+    <rule ref="category/java/codestyle.xml/FieldDeclarationsShouldBeAtStartOfClass"/>
+
+    <!-- Longitud de nombres razonable -->
+    <rule ref="category/java/codestyle.xml/ShortMethodName">
+        <properties>
+            <property name="minimum" value="2"/>
+        </properties>
+    </rule>
+
+    <rule ref="category/java/codestyle.xml/ShortVariable">
+        <properties>
+            <property name="minimum" value="2"/>
+        </properties>
+    </rule>
+
+    <rule ref="category/java/codestyle.xml/LongVariable">
+        <properties>
+            <property name="minimum" value="40"/>
+        </properties>
+    </rule>
+
+    <!-- ===== DESIGN ===== -->
+    <rule ref="category/java/design.xml">
+        <!-- Excluir reglas muy restrictivas -->
+        <exclude name="LawOfDemeter"/>
+        <exclude name="LoosePackageCoupling"/>
+        <exclude name="UseUtilityClass"/>
+        <exclude name="DataClass"/>
+        <exclude name="TooManyMethods"/>
+        <exclude name="AvoidThrowingRawExceptionTypes"/>
+    </rule>
+
+    <!-- Complejidad ciclomática ajustada -->
+    <rule ref="category/java/design.xml/CyclomaticComplexity">
+        <properties>
+            <property name="classReportLevel" value="80"/>
+            <property name="methodReportLevel" value="15"/>
+            <property name="cycloOptions" value=""/>
+        </properties>
+    </rule>
+
+    <!-- Complejidad cognitiva -->
+    <rule ref="category/java/design.xml/CognitiveComplexity">
+        <properties>
+            <property name="reportLevel" value="20"/>
+        </properties>
+    </rule>
+
+    <!-- Parámetros excesivos -->
+    <rule ref="category/java/design.xml/ExcessiveParameterList">
+        <properties>
+            <property name="minimum" value="8"/>
+        </properties>
+    </rule>
+
+    <!-- Profundidad de anidamiento excesiva -->
+    <rule ref="category/java/design.xml/AvoidDeeplyNestedIfStmts">
+        <properties>
+            <property name="problemDepth" value="4"/>
+        </properties>
+    </rule>
+
+    <!-- ===== ERROR PRONE ===== -->
+    <rule ref="category/java/errorprone.xml">
+        <!-- Excluir falsos positivos comunes -->
+        <exclude name="NullAssignment"/>
+        <exclude name="AvoidFieldNameMatchingMethodName"/>
+    </rule>
+
+    <!-- ===== MULTITHREADING ===== -->
+    <rule ref="category/java/multithreading.xml">
+        <exclude name="DoNotUseThreads"/>
+        <exclude name="AvoidUsingVolatile"/>
+    </rule>
+
+    <!-- ===== PERFORMANCE ===== -->
+    <rule ref="category/java/performance.xml">
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+    </rule>
+
+    <!-- ===== SECURITY ===== -->
+    <rule ref="category/java/security.xml"/>
+
+    <!-- ===== DOCUMENTATION (comentado para evitar ruido excesivo) ===== -->
+    <!--
+    <rule ref="category/java/documentation.xml/CommentRequired"/>
+    <rule ref="category/java/documentation.xml/CommentSize"/>
+    -->
+
+</ruleset>

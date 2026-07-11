@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter
+    xmlns="https://github.com/spotbugs/filter/3.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+    <!--
+        Archivo de exclusiones de SpotBugs.
+        SpotBugs está configurado para fallar solo con bugs de prioridad ALTA.
+        Este archivo permite excluir falsos positivos específicos o patterns conocidos.
+
+        Ejemplos de exclusión:
+    -->
+
+    <!-- Excluir clases generadas automáticamente (QueryDSL Q-types) -->
+    <Match>
+        <Class name="~.*\.Q[A-Z].*"/>
+        <Bug pattern=".*"/>
+    </Match>
+
+    <!-- Excluir implementaciones generadas por MapStruct -->
+    <Match>
+        <Class name="~.*MapperImpl"/>
+        <Bug pattern=".*"/>
+    </Match>
+
+    <!-- Ejemplo: Excluir entidades JPA de verificación de serialización -->
+    <Match>
+        <Class name="~.*JpaEntity"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+
+    <!-- Ejemplo: Excluir DTOs de Lombok de verificación EI_EXPOSE_REP -->
+    <Match>
+        <Class name="~.*\.(Request|Response|DTO)"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Ejemplo: Excluir clases de configuración de Spring -->
+    <Match>
+        <Class name="~.*Config"/>
+        <Bug pattern="UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"/>
+    </Match>
+
+    <!-- Ejemplo: Excluir tests de ciertas verificaciones -->
+    <Match>
+        <Class name="~.*Test"/>
+        <Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME"/>
+    </Match>
+
+    <!-- Ejemplo: Excluir un bug específico en una clase concreta -->
+    <!--
+    <Match>
+        <Class name="com.ar.laboratory.asyncjobengine.domain.model.Example"/>
+        <Method name="equals"/>
+        <Bug pattern="EQ_ALWAYS_FALSE"/>
+    </Match>
+    -->
+
+    <!-- Ejemplo: Excluir todo un paquete -->
+    <!--
+    <Match>
+        <Package name="~com\.ar\.laboratory\.asyncjobengine\.infrastructure\.adapter\.out\.persistence"/>
+        <Bug pattern=".*"/>
+    </Match>
+    -->
+
+</FindBugsFilter>

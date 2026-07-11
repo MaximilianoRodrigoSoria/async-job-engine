@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: async-job-engine-config
+  namespace: async-job-engine
+  labels:
+    app.kubernetes.io/name: async-job-engine
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-service:5432/asyncjobengine"
+  SPRING_DATA_REDIS_HOST: "redis-service"
+  SPRING_DATA_REDIS_PORT: "6379"
+  # MaxRAMPercentage adapta el heap al límite de memoria del pod (resources.limits.memory).
+  # No mezclar con -Xmx/-Xms fijos: si coexisten, -Xmx tiene precedencia y el porcentaje se ignora.
+  # UseContainerSupport es el default en Java 11+; se incluye solo por claridad.
+  JAVA_OPTS: >-
+    -XX:MaxRAMPercentage=75.0
+    -XX:+UseContainerSupport
+    -XX:+UseG1GC
+    -XX:+ExitOnOutOfMemoryError
+    -XX:+AutoCreateSharedArchive
+    -XX:SharedArchiveFile=/app/app.jsa
+
+  # Actuator: las probes de K8s necesitan el endpoint /health/liveness y /health/readiness.
+  # No declarar MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE aquí para no sobreescribir
+  # la configuración de application-prod.yml (que expone health,info,prometheus).
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"

@@ -1,0 +1,51 @@
+# Directorios de construcción
+build/
+target/
+bin/
+out/
+
+# Cache de Gradle
+.gradle/
+gradle-cache/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# Sistema de control de versiones
+.git/
+.gitignore
+.gitattributes
+
+# Archivos de documentación
+README.md
+*.md
+
+# Archivos de configuración local
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+*.bak
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
