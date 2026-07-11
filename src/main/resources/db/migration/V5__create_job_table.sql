@@ -10,14 +10,14 @@ CREATE TABLE IF NOT EXISTS app.job (
     idempotency_key  VARCHAR(200),
     attempts         INTEGER      NOT NULL DEFAULT 0,
     max_attempts     INTEGER      NOT NULL DEFAULT 3,
-    scheduled_at     TIMESTAMPTZ,
-    next_attempt_at  TIMESTAMPTZ,
+    scheduled_at     TIMESTAMP  ,
+    next_attempt_at  TIMESTAMP  ,
     locked_by        VARCHAR(200),
-    locked_at        TIMESTAMPTZ,
+    locked_at        TIMESTAMP  ,
     last_error       TEXT,
     result           TEXT,
-    created_at       TIMESTAMPTZ  NOT NULL,
-    updated_at       TIMESTAMPTZ  NOT NULL
+    created_at       TIMESTAMP    NOT NULL,
+    updated_at       TIMESTAMP    NOT NULL
 );
 
 -- Índice que sirve al claim de la cola: elige por estado, prioridad (desc) y antigüedad (asc).

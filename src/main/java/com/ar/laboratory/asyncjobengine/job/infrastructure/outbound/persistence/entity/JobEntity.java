@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -51,15 +53,18 @@ public class JobEntity {
     @Column(name = "max_attempts", nullable = false)
     private int maxAttempts;
 
+    @JdbcTypeCode(SqlTypes.TIMESTAMP)
     @Column(name = "scheduled_at")
     private Instant scheduledAt;
 
+    @JdbcTypeCode(SqlTypes.TIMESTAMP)
     @Column(name = "next_attempt_at")
     private Instant nextAttemptAt;
 
     @Column(name = "locked_by", length = 200)
     private String lockedBy;
 
+    @JdbcTypeCode(SqlTypes.TIMESTAMP)
     @Column(name = "locked_at")
     private Instant lockedAt;
 
@@ -69,9 +74,11 @@ public class JobEntity {
     @Column(name = "result", columnDefinition = "text")
     private String result;
 
+    @JdbcTypeCode(SqlTypes.TIMESTAMP)
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @JdbcTypeCode(SqlTypes.TIMESTAMP)
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 }
