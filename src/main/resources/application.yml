@@ -47,10 +47,6 @@ spring:
           time_zone: UTC
         order_inserts: true
         order_updates: true
-        # Mapea java.time.Instant a TIMESTAMP WITH TIME ZONE (timestamptz), consistente con las
-        # migraciones Flyway y con ddl-auto: validate.
-        type:
-          preferred_instant_jdbc_type: TIMESTAMP_UTC
     open-in-view: false
   
   # Configuración de Redis

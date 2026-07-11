@@ -10,8 +10,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 /**
  * Entidad JPA de la cola de jobs (tabla {@code app.job}).
@@ -35,8 +33,7 @@ public class JobEntity {
     @Column(name = "job_type", nullable = false, length = 120)
     private String jobType;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payload", columnDefinition = "jsonb")
+    @Column(name = "payload", columnDefinition = "text")
     private String payload;
 
     @Column(name = "status", nullable = false, length = 20)
@@ -69,8 +66,7 @@ public class JobEntity {
     @Column(name = "last_error", columnDefinition = "text")
     private String lastError;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "result", columnDefinition = "jsonb")
+    @Column(name = "result", columnDefinition = "text")
     private String result;
 
     @Column(name = "created_at", nullable = false)

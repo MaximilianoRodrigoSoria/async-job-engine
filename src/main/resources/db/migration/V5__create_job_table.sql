@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS app.job (
     id               UUID         PRIMARY KEY,
     job_type         VARCHAR(120) NOT NULL,
-    payload          JSONB        NOT NULL DEFAULT '{}'::jsonb,
+    payload          TEXT         NOT NULL DEFAULT '{}',
     status           VARCHAR(20)  NOT NULL,
     priority         INTEGER      NOT NULL DEFAULT 1,
     idempotency_key  VARCHAR(200),
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS app.job (
     locked_by        VARCHAR(200),
     locked_at        TIMESTAMPTZ,
     last_error       TEXT,
-    result           JSONB,
+    result           TEXT,
     created_at       TIMESTAMPTZ  NOT NULL,
     updated_at       TIMESTAMPTZ  NOT NULL
 );
