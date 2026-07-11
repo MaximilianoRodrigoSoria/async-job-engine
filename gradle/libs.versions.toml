@@ -4,7 +4,7 @@
 [versions]
 flyway = "10.20.1"
 springdoc = "2.7.0"
-testcontainers = "1.20.4"
+testcontainers = "1.21.4"
 wiremock = "3.9.2"
 resilience4j = "2.2.0"
 jjwt = "0.12.6"
