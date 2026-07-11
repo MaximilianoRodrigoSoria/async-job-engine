@@ -44,9 +44,37 @@ Java 21 · Spring Boot 4.x · PostgreSQL · Redis · Resilience4j · Gradle · F
 
 Organizado por **feature** en capas `domain -> application -> infrastructure`, con la regla de dependencia verificada por ArchUnit. La logica de negocio (dominio y casos de uso) no depende de framework ni de infraestructura; los adaptadores (web, persistencia, mensajeria) implementan puertos definidos por la aplicacion.
 
+## API
+
+Contexto: `/async-job-engine/api/v1`. Documentacion OpenAPI en `/async-job-engine/swagger-ui.html`.
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| `POST` | `/jobs` | Encola un job (`202`). Body: `jobType`, `payload?`, `priority?`, `maxAttempts?`, `runAt?`. Header opcional `Idempotency-Key`. |
+| `GET` | `/jobs/{id}` | Estado y resultado del job |
+| `GET` | `/jobs` | Lista/filtra por `status`, `jobType`, `priority` (paginado) |
+| `POST` | `/jobs/{id}/cancel` | Cancela un job PENDING o RETRYING |
+| `POST` | `/jobs/{id}/retry` | Reintenta manualmente un job FAILED/CANCELLED |
+| `GET` | `/jobs/dead-letter` | Lista la Dead-Letter Queue (jobs FAILED) |
+| `POST` | `/jobs/dead-letter/{id}/reprocess` | Reprocesa un job desde la DLQ |
+
+Handlers de ejemplo incluidos: `echo` y `email-notification`. Agregar un tipo nuevo es implementar `JobHandler` como un `@Component` — el motor lo descubre solo.
+
+## Correr localmente
+
+```bash
+docker compose up -d            # PostgreSQL + Redis
+./gradlew bootRun               # arranca en http://localhost:8080/async-job-engine
+
+# Encolar un job
+curl -X POST http://localhost:8080/async-job-engine/api/v1/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"jobType":"echo","payload":{"msg":"hola"},"priority":"HIGH"}'
+```
+
 ## Estado
 
-🚧 En planificacion / arranque. El diseno detallado (epicas, historias y criterios de aceptacion) vive en el plan del portafolio.
+✅ Nucleo funcional implementado: encolado, worker con claim atomico (`SKIP LOCKED`), reintentos con backoff, prioridades, tareas diferidas, maquina de estados, DLQ, idempotencia, reaper de jobs zombie, API REST y tests (unit + Testcontainers). La feature `example` del scaffold se conserva como referencia y puede eliminarse.
 
 ---
 

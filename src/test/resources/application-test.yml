@@ -44,6 +44,8 @@ spring:
 
 # Configuración de aplicación para tests
 app:
+  worker:
+    enabled: false   # el worker en background se desactiva; los tests procesan la cola manualmente
   cache:
     enabled: false
   cors:

@@ -4,6 +4,9 @@ import com.ar.laboratory.asyncjobengine.example.domain.exception.ExampleAlreadyE
 import com.ar.laboratory.asyncjobengine.example.domain.exception.ExampleNotFoundException;
 import com.ar.laboratory.asyncjobengine.shared.infrastructure.exception.BadRequestException;
 import com.ar.laboratory.asyncjobengine.shared.infrastructure.exception.InfrastructureException;
+import com.ar.laboratory.asyncjobengine.job.domain.exception.InvalidJobTransitionException;
+import com.ar.laboratory.asyncjobengine.job.domain.exception.JobNotFoundException;
+import com.ar.laboratory.asyncjobengine.job.domain.exception.JobTypeNotSupportedException;
 import com.ar.laboratory.asyncjobengine.shared.infrastructure.logging.MdcFilter;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import java.time.LocalDateTime;
@@ -80,6 +83,27 @@ public class GlobalExceptionHandler {
                         .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(JobNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleJobNotFound(
+            JobNotFoundException ex, WebRequest request) {
+        log.warn("JobNotFoundException: {}", ex.getMessage());
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(JobTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleJobTypeNotSupported(
+            JobTypeNotSupportedException ex, WebRequest request) {
+        log.warn("JobTypeNotSupportedException: {}", ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidJobTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidJobTransition(
+            InvalidJobTransitionException ex, WebRequest request) {
+        log.warn("InvalidJobTransitionException: {}", ex.getMessage());
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -168,6 +192,21 @@ public class GlobalExceptionHandler {
                         .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    /** Construye una respuesta de error estándar para un status y mensaje dados. */
+    private ResponseEntity<ErrorResponse> build(
+            HttpStatus status, String message, WebRequest request) {
+        ErrorResponse errorResponse =
+                ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(status.value())
+                        .error(status.getReasonPhrase())
+                        .message(message)
+                        .path(getPath(request))
+                        .traceId(generateTraceId())
+                        .build();
+        return ResponseEntity.status(status).body(errorResponse);
     }
 
     private String getPath(WebRequest request) {

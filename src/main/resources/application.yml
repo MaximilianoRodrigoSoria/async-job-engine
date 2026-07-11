@@ -47,6 +47,10 @@ spring:
           time_zone: UTC
         order_inserts: true
         order_updates: true
+        # Mapea java.time.Instant a TIMESTAMP WITH TIME ZONE (timestamptz), consistente con las
+        # migraciones Flyway y con ddl-auto: validate.
+        type:
+          preferred_instant_jdbc_type: TIMESTAMP_UTC
     open-in-view: false
   
   # Configuración de Redis
@@ -143,6 +147,19 @@ app:
       secret: "changeme-replace-with-a-256-bit-secret-key-in-production"
       expiration-ms: 86400000  # 24 horas
 
+  # Motor de procesamiento asíncrono (worker de jobs)
+  worker:
+    enabled: true            # false → desactiva el procesamiento en background (útil en tests)
+    batch-size: 10           # jobs tomados por pasada del poller
+    poll-interval-ms: 1000   # frecuencia del poller
+    reaper-interval-ms: 60000  # frecuencia del reaper de jobs zombie
+    stuck-after-ms: 120000   # antigüedad del lock para considerar un job RUNNING como zombie
+    backoff:
+      base-ms: 1000          # retraso base del primer reintento
+      max-ms: 300000         # tope de retraso (5 min)
+      multiplier: 2.0        # factor exponencial
+      jitter: 0.2            # aleatoriedad (±20%) para evitar tormentas de reintentos
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Resilience4j — Circuit Breaker + Retry
 # ──────────────────────────────────────────────────────────────────────────────
@@ -183,4 +200,10 @@ resilience4j:
         # Tiempo máximo que un hilo espera para obtener un permiso antes de recibir 429
         timeout-duration: 0s
         # Registrar métricas en Actuator
+        register-health-indicator: true
+      jobs-api:
+        # Rate limit del API de jobs: 100 req/s
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 0s
         register-health-indicator: true
